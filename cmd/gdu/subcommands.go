@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dundee/gdu/v5/pkg/indexer"
 	"github.com/dundee/gdu/v5/pkg/gdsserve"
 	"github.com/dundee/gdu/v5/pkg/indexdir"
-	"github.com/dundee/gdu/v5/pkg/indexer"
 	"github.com/spf13/cobra"
 )
 
