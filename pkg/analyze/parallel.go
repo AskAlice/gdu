@@ -7,10 +7,18 @@ import (
 
 	"github.com/dundee/gdu/v5/internal/common"
 	"github.com/dundee/gdu/v5/pkg/fs"
+	"github.com/dundee/gdu/v5/pkg/indexer"
 	log "github.com/sirupsen/logrus"
 )
 
 var concurrencyLimit = make(chan struct{}, 3*runtime.GOMAXPROCS(0))
+
+// IndexWriter is the minimal interface for writing index entries during scan.
+// Implemented by *indexer.Writer.
+type IndexWriter interface {
+	Write(entry *indexer.FileEntry) error
+	Close() error
+}
 
 // ParallelAnalyzer implements Analyzer
 type ParallelAnalyzer struct {
@@ -26,6 +34,12 @@ type ParallelAnalyzer struct {
 	gitAnnexedSize      bool
 	matchesTimeFilterFn common.TimeFilter
 	archiveBrowsing     bool
+	indexWriter         IndexWriter
+}
+
+// SetIndexWriter sets an optional writer to record each file to the index (e.g. for gdu search/serve).
+func (a *ParallelAnalyzer) SetIndexWriter(w IndexWriter) {
+	a.indexWriter = w
 }
 
 // CreateAnalyzer returns Analyzer
@@ -133,6 +147,14 @@ func (a *ParallelAnalyzer) processDir(path string) *Dir {
 		Files:     make(fs.Files, 0, len(files)),
 	}
 	setDirPlatformSpecificAttrs(dir, path)
+	// Index this directory entry for search (size updated later; we write again would require flush at end, so just write 0 for dirs)
+	if a.indexWriter != nil {
+		if info, statErr := os.Stat(path); statErr == nil {
+			mtime := info.ModTime()
+			e := indexer.NewFileEntry(filepath.Base(path), path, 0, mtime, mtime)
+			_ = a.indexWriter.Write(e)
+		}
+	}
 
 	for _, f := range files {
 		name := f.Name()
@@ -218,6 +240,13 @@ func (a *ParallelAnalyzer) processDir(path string) *Dir {
 				}
 				totalSize += file.GetUsage()
 				dir.AddFile(file)
+				// Write to index for gdu search/serve if enabled
+				if a.indexWriter != nil {
+					mtime := info.ModTime()
+					ctime := mtime // fallback; platform-specific ctime could be added later
+					e := indexer.NewFileEntry(name, entryPath, info.Size(), mtime, ctime)
+					_ = a.indexWriter.Write(e)
+				}
 			}
 		}
 	}

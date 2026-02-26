@@ -2,8 +2,11 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"time"
 
+	"github.com/dundee/gdu/v5/internal/indexexit"
 	"github.com/dundee/gdu/v5/pkg/fs"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -152,10 +155,42 @@ func (ui *UI) handleQuit(key *tcell.EventKey) *tcell.EventKey {
 		fmt.Fprintf(ui.output, "%s\n", ui.currentDirPath)
 		return nil
 	case 'q':
+		if ui.indexPath != "" {
+			ui.showExitIndexPrompt()
+			return nil
+		}
 		ui.app.Stop()
 		return nil
 	}
 	return key
+}
+
+const servePort = 8765
+
+// showExitIndexPrompt shows "Save index and open search? [y/N]" and either starts gdu serve or prints the command.
+func (ui *UI) showExitIndexPrompt() {
+	modal := tview.NewModal().
+		SetText("Save index and open search? [y/N]").
+		AddButtons([]string{"No", "Yes"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			ui.pages.RemovePage("exitindex")
+			if buttonLabel == "Yes" {
+				gdu, err := os.Executable()
+				if err != nil {
+					gdu, err = exec.LookPath("gdu")
+				}
+				if err == nil {
+					_ = exec.Command(gdu, "serve", "-i", ui.indexPath, "-p", fmt.Sprintf("%d", servePort)).Start()
+				}
+			} else {
+				indexexit.PrintServeCommand(ui.indexPath, servePort)
+			}
+			ui.app.Stop()
+		})
+	if !ui.UseColors {
+		modal.SetBackgroundColor(tcell.ColorGray)
+	}
+	ui.pages.AddPage("exitindex", modal, true, true)
 }
 
 func (ui *UI) handleHelp(key *tcell.EventKey) *tcell.EventKey {

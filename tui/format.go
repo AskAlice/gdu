@@ -15,6 +15,8 @@ const (
 
 	defaultColor     = "[-::]"
 	defaultColorBold = "[::b]"
+	// Dimmed style when showing cached index data (refreshing in background)
+	cachedColor = "[gray::]"
 )
 
 func (ui *UI) formatFileRow(item fs.Item, maxUsage, maxSize int64, marked, ignored bool) string {
@@ -92,7 +94,9 @@ func (ui *UI) formatFileRow(item fs.Item, maxUsage, maxSize int64, marked, ignor
 	}
 
 	if item.IsDir() {
-		if ui.UseColors && !marked && !ignored {
+		if ui.showingCachedData && !marked && !ignored {
+			row += cachedColor + "/"
+		} else if ui.UseColors && !marked && !ignored {
 			row += fmt.Sprintf("[%s::b]/", ui.resultRow.DirectoryColor)
 		} else {
 			row += defaultColorBold + "/"

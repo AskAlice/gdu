@@ -21,6 +21,8 @@ import (
 	"github.com/dundee/gdu/v5/pkg/analyze"
 	"github.com/dundee/gdu/v5/pkg/device"
 	gfs "github.com/dundee/gdu/v5/pkg/fs"
+	"github.com/dundee/gdu/v5/pkg/indexdir"
+	"github.com/dundee/gdu/v5/pkg/indexer"
 	"github.com/dundee/gdu/v5/pkg/timefilter"
 	"github.com/dundee/gdu/v5/report"
 	"github.com/dundee/gdu/v5/stdout"
@@ -45,6 +47,9 @@ type UI interface {
 	SetTimeFilter(timeFilter common.TimeFilter)
 	SetArchiveBrowsing(value bool)
 	SetCollapsePath(value bool)
+	SetIndexPath(indexPath string)
+	SetIndexWriter(writer *indexer.Writer, onDone func())
+	SetCachedData(cachedRoot *analyze.Dir, scanRoot string)
 	StartUILoop() error
 }
 
@@ -567,8 +572,41 @@ func (a *App) runAction(ui UI, path string) error {
 			return err
 		}
 
-		log.Printf("Analyzing path: %s", path)
-		if err := ui.AnalyzePath(path, nil); err != nil {
+		scanPath := path
+		// Use config-dir index and ancestor-aware scan root when not using explicit DB storage
+		if a.Flags.DbPath == "" {
+			idxPath, resolvedRoot, err := indexdir.ResolveIndexAndScanRoot(path)
+			if err != nil {
+				log.Printf("Index resolution: %v (scanning without index)", err)
+			} else {
+				scanPath = resolvedRoot
+				if resolvedRoot != path {
+					log.Printf("Using ancestor index; scanning from %s", resolvedRoot)
+				}
+				// Load cached index for instant display before we truncate the file
+				if cachedRoot, loadErr := analyze.LoadDirFromIndex(idxPath, scanPath); loadErr == nil && cachedRoot != nil {
+					ui.SetCachedData(cachedRoot, scanPath)
+				}
+				// Create index file and writer for gdu search/serve (truncates existing)
+				if _, err := indexdir.IndexDir(); err == nil {
+					idxFile, err := os.Create(idxPath)
+					if err != nil {
+						log.Printf("Creating index file: %v", err)
+					} else {
+						writer := indexer.NewWriter(idxFile)
+						onDone := func() {
+							_ = writer.Close()
+							_ = idxFile.Close()
+						}
+						ui.SetIndexPath(idxPath)
+						ui.SetIndexWriter(writer, onDone)
+					}
+				}
+			}
+		}
+
+		log.Printf("Analyzing path: %s", scanPath)
+		if err := ui.AnalyzePath(scanPath, nil); err != nil {
 			return fmt.Errorf("scanning dir: %w", err)
 		}
 	}

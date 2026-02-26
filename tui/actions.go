@@ -71,7 +71,31 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 
 	go func() {
 		defer debug.FreeOSMemory()
+
+		// Show cached index data immediately so user sees something while scan runs
+		if ui.cachedRoot != nil {
+			cached := ui.cachedRoot
+			scanRoot := ui.cachedScanRoot
+			ui.cachedRoot = nil
+			ui.cachedScanRoot = ""
+			ui.app.QueueUpdateDraw(func() {
+				ui.topDir = cached
+				ui.currentDir = cached
+				ui.topDirPath = scanRoot
+				ui.currentDirPath = scanRoot
+				ui.showingCachedData = true
+				ui.showDir()
+				ui.pages.RemovePage("progress")
+			})
+		}
+
 		currentDir := ui.Analyzer.AnalyzeDir(path, ui.CreateIgnoreFunc(), ui.CreateFileTypeFilter())
+
+		// Close index writer so gdu search/serve can use the saved index
+		if ui.indexOnDone != nil {
+			ui.indexOnDone()
+			ui.indexOnDone = nil
+		}
 
 		if parentDir != nil {
 			currentDir.SetParent(parentDir)
@@ -86,6 +110,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 		ui.topDir.UpdateStats(ui.linkedItems)
 
 		ui.app.QueueUpdateDraw(func() {
+			ui.showingCachedData = false
 			ui.currentDir = currentDir
 			ui.showDir()
 			ui.pages.RemovePage("progress")

@@ -12,6 +12,7 @@ import (
 	"github.com/dundee/gdu/v5/pkg/analyze"
 	"github.com/dundee/gdu/v5/pkg/device"
 	"github.com/dundee/gdu/v5/pkg/fs"
+	"github.com/dundee/gdu/v5/pkg/indexer"
 	"github.com/dundee/gdu/v5/report"
 	"github.com/fatih/color"
 )
@@ -116,6 +117,15 @@ func (ui *UI) StartUILoop() error {
 // SetCollapsePath sets the flag to collapse paths
 func (ui *UI) SetCollapsePath(value bool) {
 }
+
+// SetIndexPath is a no-op for stdout UI (index not used).
+func (ui *UI) SetIndexPath(indexPath string) {}
+
+// SetIndexWriter is a no-op for stdout UI (index not used).
+func (ui *UI) SetIndexWriter(writer *indexer.Writer, onDone func()) {}
+
+// SetCachedData is a no-op for stdout UI.
+func (ui *UI) SetCachedData(cachedRoot *analyze.Dir, scanRoot string) {}
 
 // ListDevices lists mounted devices and shows their disk usage
 func (ui *UI) ListDevices(getter device.DevicesInfoGetter) error {

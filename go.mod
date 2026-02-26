@@ -1,6 +1,6 @@
 module github.com/dundee/gdu/v5
 
-go 1.24.0
+go 1.25
 
 require (
 	github.com/dgraph-io/badger/v4 v4.9.1
@@ -45,8 +45,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
-	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/term v0.37.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/term v0.39.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

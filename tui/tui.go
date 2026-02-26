@@ -15,6 +15,7 @@ import (
 	"github.com/dundee/gdu/v5/pkg/analyze"
 	"github.com/dundee/gdu/v5/pkg/device"
 	"github.com/dundee/gdu/v5/pkg/fs"
+	"github.com/dundee/gdu/v5/pkg/indexer"
 	"github.com/dundee/gdu/v5/pkg/remove"
 	"github.com/dundee/gdu/v5/pkg/timefilter"
 	"github.com/gdamore/tcell/v2"
@@ -85,6 +86,11 @@ type UI struct {
 	timeFilterLoc           *time.Location
 	noDeleteWithFilter      bool
 	collapsePath            bool
+	indexPath               string         // config-dir index path for gdu search/serve
+	indexOnDone             func()         // called when analysis finishes to close index writer
+	showingCachedData       bool           // true while displaying index-loaded data (dimmed until scan completes)
+	cachedRoot              *analyze.Dir  // preloaded index tree to show immediately while scan runs
+	cachedScanRoot          string         // scan root for cached tree
 }
 
 type deleteQueueItem struct {
@@ -339,6 +345,25 @@ func (ui *UI) SetNoDeleteWithFilter() {
 // SetCollapsePath sets the flag to collapse paths
 func (ui *UI) SetCollapsePath(value bool) {
 	ui.collapsePath = value
+}
+
+// SetIndexPath sets the config-dir index path for the exit prompt (gdu serve).
+func (ui *UI) SetIndexPath(indexPath string) {
+	ui.indexPath = indexPath
+}
+
+// SetIndexWriter sets the index writer and callback to close it when analysis is done.
+func (ui *UI) SetIndexWriter(writer *indexer.Writer, onDone func()) {
+	ui.indexOnDone = onDone
+	if a, ok := ui.Analyzer.(*analyze.ParallelAnalyzer); ok {
+		a.SetIndexWriter(writer)
+	}
+}
+
+// SetCachedData sets a preloaded directory tree from the index to show immediately while the scan runs.
+func (ui *UI) SetCachedData(cachedRoot *analyze.Dir, scanRoot string) {
+	ui.cachedRoot = cachedRoot
+	ui.cachedScanRoot = scanRoot
 }
 
 // SetDeleteInBackground sets the flag to delete files in background
