@@ -1,8 +1,10 @@
-//go:build (linux && (mips64 || mipsle || mips || mips64le || ppc64)) || (freebsd && (arm || 386)) || (openbsd && 386) || (netbsd && (arm || 386 || amd64))
+//go:build !((linux && !mips64 && !mipsle && !mips && !mips64le && !ppc64) || darwin || windows || (freebsd && !arm && !386) || (openbsd && !386) || (netbsd && !arm && !386 && !amd64))
 
 package analyze
 
-import "errors"
+import (
+	"errors"
+)
 
 // checkAvailable reports that the modernc SQLite driver is not available on this platform
 func checkAvailable() error {

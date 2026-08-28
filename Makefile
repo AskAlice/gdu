@@ -2,6 +2,7 @@ NAME := gdu
 MAJOR_VER := v5
 PACKAGE := github.com/dundee/$(NAME)/$(MAJOR_VER)
 CMD_GDU := cmd/gdu
+CMD_GDS := cmd/gds
 VERSION := $(shell git describe --tags 2>/dev/null)
 NAMEVER := $(NAME)-$(subst v,,$(VERSION))
 DATE := $(shell date +'%Y-%m-%d')
@@ -29,12 +30,21 @@ tarball: vendor
 	-mkdir dist
 	$(TAR) czf dist/$(NAMEVER).tgz --transform "s,^,$(NAMEVER)/," --anchored --exclude dist --exclude test_dir --exclude coverage.txt --exclude webui/frontend/node_modules *
 
-build:
+build: build-gdu build-gds
+
+build-gdu:
 	@echo "Version: " $(VERSION)
 	mkdir -p dist
 	GOFLAGS="$(GOFLAGS)" CGO_ENABLED=0 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/$(NAME) $(PACKAGE)/$(CMD_GDU)
 
-build-static:
+build-gds:
+	@echo "Version: " $(VERSION)
+	mkdir -p dist
+	GOFLAGS="$(GOFLAGS)" CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o dist/gds $(PACKAGE)/$(CMD_GDS)
+
+build-static: build-static-gdu build-static-gds
+
+build-static-gdu:
 	@echo "Version: " $(VERSION)
 	mkdir -p dist
 	GOFLAGS="$(GOFLAGS_STATIC)" CGO_ENABLED=0 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/$(NAME) $(PACKAGE)/$(CMD_GDU)
@@ -44,6 +54,11 @@ build-static:
 # (build/build-static/build-all) do not need this; they use the committed dist.
 build-web:
 	cd webui/frontend && npm ci && npm run build
+
+build-static-gds:
+	@echo "Version: " $(VERSION)
+	mkdir -p dist
+	GOFLAGS="$(GOFLAGS_STATIC)" CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o dist/gds $(PACKAGE)/$(CMD_GDS)
 
 build-docker:
 	@echo "Version: " $(VERSION)

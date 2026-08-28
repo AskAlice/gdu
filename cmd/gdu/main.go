@@ -7,15 +7,14 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/dundee/gdu/v5/cmd/gdu/app"
+	"github.com/dundee/gdu/v5/pkg/device"
 	"github.com/gdamore/tcell/v2"
 	"github.com/mattn/go-isatty"
 	"github.com/rivo/tview"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
-
-	"github.com/dundee/gdu/v5/cmd/gdu/app"
-	"github.com/dundee/gdu/v5/pkg/device"
 )
 
 const (
@@ -44,6 +43,7 @@ However HDDs work as well, but the performance gain is not so huge.
 // nolint:funlen // a lot of flags to initialize
 func init() {
 	af = &app.Flags{Style: app.Style{ProgressModal: app.ProgressModalOpts{ShowDiskProgressBar: true}}}
+	rootCmd.AddCommand(indexCmd)
 	flags := rootCmd.Flags()
 	flags.StringVar(&af.CfgFile, "config-file", "", "Read config from file (default is $HOME/.gdu.yaml)")
 	flags.StringVarP(&af.LogFile, "log-file", "l", "/dev/null", "Path to a logfile")

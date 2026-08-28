@@ -214,24 +214,27 @@ func (ui *UI) CreateIgnoreFunc() ShouldDirBeIgnored {
 	}
 }
 
+func isIndexCacheName(name string) bool {
+	return strings.HasPrefix(name, ".gdu-cache-") && strings.HasSuffix(name, ".ndjson")
+}
+
 // CreateFileTypeFilter returns function for detecting if file should be ignored based on type
 func (ui *UI) CreateFileTypeFilter() ShouldFileBeIgnored {
 	// If we have include types, use whitelist mode
 	if len(ui.IncludeTypes) > 0 {
 		return func(name string) bool {
-			return !ui.ShouldFileBeIncludedByType(name)
+			return isIndexCacheName(name) || !ui.ShouldFileBeIncludedByType(name)
 		}
 	}
 
 	// If we have ignore types, use blacklist mode
 	if len(ui.IgnoreTypes) > 0 {
 		return func(name string) bool {
-			return ui.ShouldFileBeIgnoredByType(name)
+			return isIndexCacheName(name) || ui.ShouldFileBeIgnoredByType(name)
 		}
 	}
 
-	// No type filtering - return nil to indicate no filtering is needed
-	return nil
+	return func(name string) bool { return isIndexCacheName(name) }
 }
 
 // IsFilteringFiles returns true if we have any file type filters set

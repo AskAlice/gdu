@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dundee/gdu/v5/internal/common"
+	"github.com/rivo/tview"
 )
 
 func (ui *UI) updateProgress(analyzer common.Analyzer, doneChan common.SignalGroup) {
@@ -38,7 +39,7 @@ func (ui *UI) updateProgress(analyzer common.Analyzer, doneChan common.SignalGro
 
 		progress := analyzer.GetProgress()
 
-		func(itemCount int64, totalUsage int64) {
+		func(itemCount int64, totalUsage int64, currentItem string) {
 			delta := time.Since(start).Round(time.Second)
 
 			if deviceSize > 0 && showBar {
@@ -50,6 +51,7 @@ func (ui *UI) updateProgress(analyzer common.Analyzer, doneChan common.SignalGro
 			}
 
 			ui.app.QueueUpdateDraw(func() {
+				ui.resizeProgressModal(currentItem)
 				ui.progress.SetText("Total items: " +
 					color +
 					common.FormatNumber(int64(itemCount)) +
@@ -59,10 +61,13 @@ func (ui *UI) updateProgress(analyzer common.Analyzer, doneChan common.SignalGro
 					"[white:black:-], elapsed time: " +
 					color +
 					delta.String() +
+					"[white:black:-]\n\nCurrent item: " +
+					color +
+					tview.Escape(currentItem) +
 					"[white:black:-]\n\nPress Tab to preview results found so far\n" +
 					"Press Ctrl+C to stop scanning and keep results")
 			})
-		}(progress.ItemCount, progress.TotalUsage)
+		}(progress.ItemCount, progress.TotalUsage, progress.CurrentItemName)
 	}
 }
 
@@ -78,4 +83,23 @@ func writeTerminalProgress(percent int) {
 // clearTerminalProgress removes the terminal tab/taskbar progress indicator.
 func clearTerminalProgress() {
 	fmt.Fprintf(os.Stderr, "\x1b]9;4;0;0\x1b\\")
+}
+
+// resizeProgressModal grows the progress box so the full path of the
+// current item fits, wrapped over as many lines as needed.
+func (ui *UI) resizeProgressModal(currentItem string) {
+	if ui.progressInnerFlex == nil {
+		return
+	}
+	_, _, width, _ := ui.progress.GetInnerRect()
+	pathLines := 1
+	if width > 0 {
+		pathLines = (len([]rune(currentItem)) + width - 1) / width
+		if pathLines < 1 {
+			pathLines = 1
+		}
+	}
+	// 2 border + 4 padding + 6 fixed text lines + wrapped path
+	height := 2 + 4 + 6 + pathLines
+	ui.progressInnerFlex.ResizeItem(ui.progress, height, 1)
 }

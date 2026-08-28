@@ -14,6 +14,7 @@ import (
 	"github.com/dundee/gdu/v5/pkg/analyze"
 	"github.com/dundee/gdu/v5/pkg/device"
 	"github.com/dundee/gdu/v5/pkg/fs"
+	"github.com/dundee/gdu/v5/pkg/indexer"
 	"github.com/dundee/gdu/v5/report"
 	"github.com/fatih/color"
 )
@@ -35,6 +36,7 @@ type UI struct {
 	fixedBase         float64
 	fixedSuffix       string
 	reverseSort       bool
+	autoIndex         bool
 }
 
 var (
@@ -115,6 +117,9 @@ func (ui *UI) SetFixedUnit(unitChar string) {
 		ui.fixedSuffix = suffixMap["g"]
 	}
 }
+
+// SetAutoIndex writes .gdu-cache-*.ndjson after a scan.
+func (ui *UI) SetAutoIndex(v bool) { ui.autoIndex = v }
 
 func (ui *UI) SetShowItemCount() {
 	ui.showItemCnt = true
@@ -238,6 +243,10 @@ func (ui *UI) AnalyzePath(path string, _ fs.Item) error {
 	}()
 
 	wait.Wait()
+
+	if ui.autoIndex && dir != nil {
+		_ = indexer.SaveFromTree(path, dir)
+	}
 
 	switch {
 	case ui.top > 0:
@@ -535,7 +544,8 @@ func (ui *UI) updateProgress(updateStatsDone <-chan struct{}) {
 			fmt.Fprint(ui.output, "Scanning... Total items: "+
 				ui.red.Sprint(common.FormatNumber(int64(progress.ItemCount)))+
 				" size: "+
-				ui.formatSize(progress.TotalUsage))
+				ui.formatSize(progress.TotalUsage)+
+				" "+progress.CurrentItemName)
 			i++
 			i %= progressRunesCount
 		case <-analysisDoneChan:

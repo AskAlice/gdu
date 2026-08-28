@@ -70,6 +70,7 @@ func (ui *UI) deleteItem(item fs.Item, action DeleteAction) {
 			}
 			return
 		}
+		ui.dropIndex(toDelete)
 	}
 
 	if item.GetParent().GetPath() == ui.currentDir.GetPath() {

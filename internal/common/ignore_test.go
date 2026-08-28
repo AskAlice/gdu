@@ -490,7 +490,8 @@ func TestFileTypeFilterWithRealFiles(t *testing.T) {
 
 func TestCreateFileTypeFilterReturnsNilWhenNoFiltering(t *testing.T) {
 	ui := &common.UI{}
-	// No include or ignore types set
 	filter := ui.CreateFileTypeFilter()
-	assert.Nil(t, filter, "CreateFileTypeFilter should return nil when no filtering is configured")
+	assert.NotNil(t, filter)
+	assert.True(t, filter(".gdu-cache-root.ndjson"))
+	assert.False(t, filter("readme.go"))
 }

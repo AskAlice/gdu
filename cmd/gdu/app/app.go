@@ -447,6 +447,7 @@ func (a *App) createUI(outputAttributes gfs.JSONAttributes) (UI, error) {
 		if a.Flags.ShowSymlinkTarget {
 			stdoutUI.SetShowSymlinkTarget(true)
 		}
+		stdoutUI.SetAutoIndex(true)
 		ui = stdoutUI
 	default:
 		opts := a.getOptions()
@@ -614,6 +615,9 @@ func (a *App) getOptions() []tui.Option {
 	}
 	opts = append(opts, func(ui *tui.UI) {
 		ui.SetShowDiskProgressBar(a.Flags.Style.ProgressModal.ShowDiskProgressBar)
+	})
+	opts = append(opts, func(ui *tui.UI) {
+		ui.SetLiveIndex(true)
 	})
 	return opts
 }

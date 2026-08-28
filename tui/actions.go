@@ -53,7 +53,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 
 	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(nil, 0, 1, false).
-		AddItem(ui.progress, 8, 1, false)
+		AddItem(ui.progress, 10, 1, false)
 
 	if ui.currentDeviceSize > 0 && ui.showDiskProgressBar {
 		ui.progressBar = NewProgressBar()
@@ -72,6 +72,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 
 	ui.pages.AddPage("progress", flex, true, true)
 	ui.progressFlex = flex
+	ui.progressInnerFlex = innerFlex
 
 	ui.Analyzer.ResetProgress()
 
@@ -115,6 +116,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 			ui.currentDir = currentDir
 			ui.showDir()
 			ui.pages.RemovePage("progress")
+			ui.saveIndex()
 		})
 
 		if ui.done != nil {
@@ -136,7 +138,7 @@ func (ui *UI) ReadAnalysis(input io.Reader) error {
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 10, 1, false).
-			AddItem(ui.progress, 8, 1, false).
+			AddItem(ui.progress, 10, 1, false).
 			AddItem(nil, 10, 1, false), 0, 50, false).
 		AddItem(nil, 0, 1, false)
 
@@ -259,6 +261,7 @@ func (ui *UI) deleteSelected(action DeleteAction) {
 				}
 				return
 			}
+			ui.dropIndex(item)
 		}
 
 		ui.app.QueueUpdateDraw(func() {

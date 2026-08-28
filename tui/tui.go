@@ -18,6 +18,7 @@ import (
 	"github.com/dundee/gdu/v5/pkg/analyze"
 	"github.com/dundee/gdu/v5/pkg/device"
 	"github.com/dundee/gdu/v5/pkg/fs"
+	"github.com/dundee/gdu/v5/pkg/indexer"
 	"github.com/dundee/gdu/v5/pkg/remove"
 	"github.com/dundee/gdu/v5/pkg/timefilter"
 	"github.com/gdamore/tcell/v2"
@@ -110,6 +111,9 @@ type UI struct {
 	previewing              bool
 	previewSavedDir         fs.Item
 	progressFlex            *tview.Flex
+	progressInnerFlex       *tview.Flex
+	liveIndex               bool
+	indexWatch              sync.Once
 }
 
 type deleteQueueItem struct {
@@ -497,6 +501,49 @@ func (ui *UI) SetDeleteInBackground() {
 func (ui *UI) resetSorting() {
 	ui.sortBy = ui.defaultSortBy
 	ui.sortOrder = ui.defaultSortOrder
+}
+
+// SetLiveIndex writes .gdu-cache-*.ndjson after scans, drops entries on delete,
+// and rescans the current dir when its listing changes.
+func (ui *UI) SetLiveIndex(v bool) { ui.liveIndex = v }
+
+func (ui *UI) saveIndex() {
+	if !ui.liveIndex || ui.topDir == nil || ui.topDirPath == "" {
+		return
+	}
+	go func() { _ = indexer.SaveFromTree(ui.topDirPath, ui.topDir) }()
+	ui.startIndexWatch()
+}
+
+func (ui *UI) dropIndex(item fs.Item) {
+	if !ui.liveIndex || ui.topDirPath == "" || item == nil {
+		return
+	}
+	p := item.GetPath()
+	go func() { _ = indexer.RemovePath(ui.topDirPath, p) }()
+}
+
+func (ui *UI) startIndexWatch() {
+	ui.indexWatch.Do(func() {
+		go func() {
+			t := time.NewTicker(3 * time.Second)
+			defer t.Stop()
+			for range t.C {
+				if ui.scanning || ui.currentDir == nil {
+					continue
+				}
+				if !indexer.DirChanged(ui.currentDir) {
+					continue
+				}
+				ui.app.QueueUpdateDraw(func() {
+					if ui.scanning || ui.currentDir == nil {
+						return
+					}
+					ui.rescanDir()
+				})
+			}
+		}()
+	})
 }
 
 func (ui *UI) rescanDir() {

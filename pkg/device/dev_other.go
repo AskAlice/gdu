@@ -1,8 +1,10 @@
-//go:build windows || plan9
+//go:build !linux && !freebsd && !darwin && !netbsd && !openbsd
 
 package device
 
-import "errors"
+import (
+	"errors"
+)
 
 // OtherDevicesInfoGetter returns info for other devices
 type OtherDevicesInfoGetter struct{}

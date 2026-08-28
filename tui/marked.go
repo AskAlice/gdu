@@ -91,6 +91,7 @@ func (ui *UI) deleteMarked(action DeleteAction) {
 					}
 					return
 				}
+				ui.dropIndex(item)
 			}
 		}
 
